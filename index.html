@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veritas — Multilingual XAI Compliance Console</title>
+<meta name="description" content="Inspect AI decisions with multilingual explanations, factor attributions, risk scores, compliance checks and printable audit reports.">
+<style>
+  :root {
+    --background: #f7f7f5;
+    --card: #ffffff;
+    --surface: #fbfbfa;
+    --foreground: #1c1c1a;
+    --muted-foreground: #6b6b66;
+    --border: #e4e3de;
+    --primary: #2f5d50;
+    --primary-foreground: #ffffff;
+    --success: #1e7e4d;
+    --success-bg: rgba(30,126,77,0.12);
+    --success-border: rgba(30,126,77,0.3);
+    --warning: #8a5a00;
+    --warning-bg: rgba(199,138,0,0.15);
+    --warning-border: rgba(199,138,0,0.4);
+    --destructive: #b3261e;
+    --destructive-bg: rgba(179,38,30,0.1);
+    --destructive-border: rgba(179,38,30,0.3);
+    --muted: #ececea;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+
+  .header-inner {
+    max-width: 1152px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+  }
+
+  h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; color: var(--muted-foreground); margin: 2px 0 0; }
+
+  .lang-group { display: flex; align-items: center; gap: 8px; }
+  .lang-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-foreground); }
+  .lang-toggle {
+    display: flex;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 2px;
+  }
+  .lang-toggle button {
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .lang-toggle button:hover { color: var(--foreground); }
+  .lang-toggle button.active { background: var(--primary); color: var(--primary-foreground); }
+
+  .layout {
+    max-width: 1152px;
+    margin: 0 auto;
+    display: grid;
+    gap: 24px;
+    padding: 32px 24px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 1024px) {
+    .layout { grid-template-columns: 320px 1fr; }
+  }
+
+  aside h2 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    margin: 0 0 12px;
+  }
+
+  .decision-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .decision-btn {
+    width: 100%;
+    text-align: left;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.6);
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color .15s ease;
+    font-family: inherit;
+  }
+  .decision-btn:hover { border-color: rgba(47,93,80,0.4); }
+  .decision-btn.active {
+    border-color: var(--primary);
+    background: var(--card);
+    box-shadow: 0 0 0 1px rgba(47,93,80,0.3);
+  }
+  .decision-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .decision-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted-foreground); }
+  .decision-title { margin: 6px 0 0; font-size: 14px; font-weight: 500; }
+  .decision-meta { margin: 2px 0 0; font-size: 12px; color: var(--muted-foreground); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge.success { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+  .badge.warning { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+  .badge.destructive { background: var(--destructive-bg); color: var(--destructive); border-color: var(--destructive-border); }
+
+  .card {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: 24px;
+  }
+
+  section.detail { display: flex; flex-direction: column; gap: 24px; }
+
+  .detail-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .detail-header h2 { font-size: 18px; font-weight: 600; margin: 0; }
+  .detail-header .id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted-foreground); margin: 4px 0 0; }
+
+  .btn-primary {
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s ease;
+    font-family: inherit;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+
+  .stat-grid { margin-top: 20px; display: grid; gap: 16px; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+  .stat dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-foreground); margin: 0; }
+  .stat dd { margin: 4px 0 0; }
+  .stat .big { font-size: 18px; font-weight: 600; }
+  .bar-track { margin-top: 4px; height: 6px; width: 100%; border-radius: 999px; background: var(--muted); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: var(--primary); }
+  .risk-low { color: var(--success); }
+  .risk-medium { color: var(--warning); }
+  .risk-high { color: var(--destructive); }
+  .stat .small-muted { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+
+  h3.section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+
+  .factor-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+  .factor-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; }
+  .factor-name { font-weight: 500; }
+  .factor-detail { font-size: 12px; color: var(--muted-foreground); }
+  .factor-bar-row { margin-top: 6px; display: flex; align-items: center; gap: 12px; }
+  .factor-track { position: relative; height: 8px; flex: 1; border-radius: 999px; background: var(--muted); overflow: hidden; }
+  .factor-mid { position: absolute; inset: 0 auto 0 50%; width: 1px; background: var(--border); }
+  .factor-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .factor-fill.supports { background: var(--success); left: 50%; }
+  .factor-fill.opposes { background: var(--destructive); right: 50%; }
+  .factor-pct { width: 96px; text-align: right; font-size: 12px; font-weight: 500; }
+  .factor-pct.supports { color: var(--success); }
+  .factor-pct.opposes { color: var(--destructive); }
+
+  .explanation-text { margin: 12px 0 0; font-size: 14px; line-height: 1.7; }
+
+  .compliance-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .compliance-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .compliance-item {
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--surface); padding: 12px;
+  }
+  .compliance-item .label { max-width: 34rem; }
+  .compliance-item .label p:first-child { margin: 0; font-size: 14px; font-weight: 500; }
+  .compliance-item .label p:last-child { margin: 4px 0 0; font-size: 12px; color: var(--muted-foreground); }
+
+  footer.print-only { display: none; }
+
+  @media print {
+    header .lang-group, aside, .btn-primary { display: none !important; }
+    .layout { grid-template-columns: 1fr; padding: 0; }
+    body { background: #fff; }
+    .card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>Veritas</h1>
+      <p class="subtitle" data-i18n="subtitle">Multilingual Explainable AI Compliance Console</p>
+    </div>
+    <div class="lang-group">
+      <span class="lang-label" data-i18n="language">Language</span>
+      <div class="lang-toggle" id="langToggle">
+        <button data-lang="en" class="active">English</button>
+        <button data-lang="hi">हिंदी</button>
+        <button data-lang="mr">मराठी</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <h2 data-i18n="decisions">Decisions</h2>
+    <ul class="decision-list" id="decisionList"></ul>
+  </aside>
+
+  <section class="detail" id="detail"></section>
+</div>
+
+<script>
+const DECISIONS = [
+  {
+    id: "DEC-2026-0417",
+    domain: { en: "Consumer lending", hi: "उपभोक्ता ऋण", mr: "ग्राहक कर्ज" },
+    model: "CreditNet v4.2.1",
+    officer: "A. Deshmukh",
+    timestamp: "2026-08-06 09:14 IST",
+    outcome: "approved",
+    confidence: 92,
+    riskScore: 18,
+    riskLevel: "low",
+    factors: [
+      { name: { en: "Repayment history", hi: "पुनर्भुगतान इतिहास", mr: "परतफेड इतिहास" }, detail: { en: "48 months, no default", hi: "48 महीने, कोई चूक नहीं", mr: "48 महिने, थकबाकी नाही" }, pct: 42, dir: "supports" },
+      { name: { en: "Debt-to-income ratio", hi: "ऋण-से-आय अनुपात", mr: "कर्ज-ते-उत्पन्न प्रमाण" }, detail: { en: "0.24", hi: "0.24", mr: "0.24" }, pct: 26, dir: "supports" },
+      { name: { en: "Employment stability", hi: "रोज़गार स्थिरता", mr: "रोजगार स्थैर्य" }, detail: { en: "6 years, same employer", hi: "6 वर्ष, एक ही नियोक्ता", mr: "6 वर्षे, तोच नियोक्ता" }, pct: 19, dir: "supports" },
+      { name: { en: "Recent credit enquiries", hi: "हालिया क्रेडिट पूछताछ", mr: "अलीकडील क्रेडिट चौकशी" }, detail: { en: "3 in 90 days", hi: "90 दिनों में 3", mr: "90 दिवसांत 3" }, pct: 13, dir: "opposes" }
+    ],
+    explanation: {
+      en: "The model approved this application primarily because of a 48-month clean repayment history and a low debt-to-income ratio of 0.24. Stable employment reinforced the outcome, while three recent credit enquiries slightly reduced confidence without changing the decision.",
+      hi: "मॉडल ने इस आवेदन को मुख्य रूप से 48 महीने के स्वच्छ पुनर्भुगतान इतिहास और 0.24 के कम ऋण-से-आय अनुपात के कारण स्वीकृत किया। स्थिर रोज़गार ने परिणाम को मज़बूत किया, जबकि हाल की तीन क्रेडिट पूछताछों ने निर्णय बदले बिना विश्वास स्तर को थोड़ा कम किया।",
+      mr: "मॉडेलने या अर्जाला मुख्यतः 48 महिन्यांच्या स्वच्छ परतफेड इतिहासामुळे आणि 0.24 च्या कमी कर्ज-ते-उत्पन्न प्रमाणामुळे मंजुरी दिली. स्थिर रोजगारामुळे निर्णयाला बळकटी मिळाली, तर अलीकडील तीन क्रेडिट चौकशींमुळे निर्णय न बदलता विश्वास पातळी किंचित कमी झाली."
+    }
+  },
+  {
+    id: "DEC-2026-0418",
+    domain: { en: "Insurance claims", hi: "बीमा दावे", mr: "विमा दावे" },
+    model: "ClaimGuard v2.8.0",
+    officer: "R. Iyer",
+    timestamp: "2026-08-06 11:42 IST",
+    outcome: "review",
+    confidence: 61,
+    riskScore: 54,
+    riskLevel: "medium",
+    factors: [
+      { name: { en: "Claim amount vs. policy average", hi: "दावा राशि बनाम पॉलिसी औसत", mr: "दावा रक्कम विरुद्ध पॉलिसी सरासरी" }, detail: { en: "2.3x higher than average", hi: "औसत से 2.3 गुना अधिक", mr: "सरासरीपेक्षा 2.3 पट अधिक" }, pct: 31, dir: "opposes" },
+      { name: { en: "Documentation completeness", hi: "दस्तावेज़ीकरण पूर्णता", mr: "दस्तऐवजीकरण पूर्णता" }, detail: { en: "All required documents submitted", hi: "सभी आवश्यक दस्तावेज़ जमा", mr: "सर्व आवश्यक कागदपत्रे सादर" }, pct: 24, dir: "supports" },
+      { name: { en: "Prior claims frequency", hi: "पूर्व दावों की आवृत्ति", mr: "आधीच्या दाव्यांची वारंवारता" }, detail: { en: "2 claims in 18 months", hi: "18 महीनों में 2 दावे", mr: "18 महिन्यांत 2 दावे" }, pct: 22, dir: "opposes" },
+      { name: { en: "Incident report consistency", hi: "घटना रिपोर्ट संगति", mr: "घटना अहवाल सुसंगतता" }, detail: { en: "Minor timeline discrepancy flagged", hi: "मामूली समयरेखा विसंगति चिह्नित", mr: "किरकोळ कालरेषा विसंगती नोंदवली" }, pct: 17, dir: "opposes" }
+    ],
+    explanation: {
+      en: "The model flagged this claim for manual review because the requested amount is 2.3 times the policy average and a minor discrepancy was found between the incident report and supporting evidence timelines. Complete documentation and no other red flags kept the risk from being scored higher.",
+      hi: "मॉडल ने इस दावे को मैन्युअल समीक्षा के लिए चिह्नित किया क्योंकि अनुरोधित राशि पॉलिसी औसत से 2.3 गुना है और घटना रिपोर्ट व सहायक साक्ष्य की समयरेखा के बीच एक मामूली विसंगति पाई गई। पूर्ण दस्तावेज़ीकरण और कोई अन्य चेतावनी संकेत न होने के कारण जोखिम अधिक नहीं आंका गया।",
+      mr: "विनंती केलेली रक्कम पॉलिसी सरासरीच्या 2.3 पट असल्याने आणि घटना अहवाल व पुरावा कालरेषेत किरकोळ विसंगती आढळल्याने मॉडेलने हा दावा मॅन्युअल पुनरावलोकनासाठी चिन्हांकित केला. संपूर्ण कागदपत्रे आणि इतर कोणतेही धोक्याचे संकेत नसल्यामुळे जोखीम अधिक गुणांकित झाली नाही."
+    }
+  },
+  {
+    id: "DEC-2026-0419",
+    domain: { en: "Recruitment screening", hi: "भर्ती स्क्रीनिंग", mr: "भरती स्क्रीनिंग" },
+    model: "HireLens v1.9.4",
+    officer: "S. Kulkarni",
+    timestamp: "2026-08-06 14:07 IST",
+    outcome: "declined",
+    confidence: 78,
+    riskScore: 71,
+    riskLevel: "high",
+    factors: [
+      { name: { en: "Role-relevant experience", hi: "भूमिका-प्रासंगिक अनुभव", mr: "भूमिका-संबंधित अनुभव" }, detail: { en: "1.5 years vs. 4+ required", hi: "1.5 वर्ष बनाम 4+ आवश्यक", mr: "1.5 वर्षे विरुद्ध 4+ आवश्यक" }, pct: 38, dir: "opposes" },
+      { name: { en: "Assessment score", hi: "मूल्यांकन स्कोर", mr: "मूल्यांकन गुण" }, detail: { en: "62/100, below threshold", hi: "62/100, सीमा से नीचे", mr: "62/100, मर्यादेखाली" }, pct: 29, dir: "opposes" },
+      { name: { en: "Portfolio relevance", hi: "पोर्टफोलियो प्रासंगिकता", mr: "पोर्टफोलिओ प्रासंगिकता" }, detail: { en: "Adjacent domain projects", hi: "समीपस्थ क्षेत्र की परियोजनाएं", mr: "संलग्न क्षेत्रातील प्रकल्प" }, pct: 20, dir: "supports" },
+      { name: { en: "Communication assessment", hi: "संचार मूल्यांकन", mr: "संवाद मूल्यांकन" }, detail: { en: "Strong, above average", hi: "मजबूत, औसत से ऊपर", mr: "मजबूत, सरासरीपेक्षा जास्त" }, pct: 13, dir: "supports" }
+    ],
+    explanation: {
+      en: "The model declined this candidate mainly due to role-relevant experience falling well short of the 4-year requirement and an assessment score below the qualifying threshold. Relevant portfolio work and strong communication skills were noted but did not offset the experience and assessment gaps.",
+      hi: "मॉडल ने इस उम्मीदवार को मुख्य रूप से अस्वीकृत किया क्योंकि भूमिका-प्रासंगिक अनुभव 4 वर्ष की आवश्यकता से काफी कम था और मूल्यांकन स्कोर योग्यता सीमा से नीचे था। प्रासंगिक पोर्टफोलियो कार्य और मजबूत संचार कौशल को नोट किया गया, लेकिन इससे अनुभव और मूल्यांकन की कमी की भरपाई नहीं हुई।",
+      mr: "भूमिका-संबंधित अनुभव 4 वर्षांच्या आवश्यकतेपेक्षा खूपच कमी असल्याने आणि मूल्यांकन गुण पात्रता मर्यादेखाली असल्याने मॉडेलने या उमेदवाराला नाकारले. संबंधित पोर्टफोलिओ कार्य आणि मजबूत संवाद कौशल्ये नोंदवली गेली, पण त्यामुळे अनुभव आणि मूल्यांकनातील तफावत भरून निघाली नाही."
+    }
+  }
+];
+
+const COMPLIANCE_ITEMS = [
+  { title: { en: "Right to explanation", hi: "स्पष्टीकरण का अधिकार", mr: "स्पष्टीकरणाचा अधिकार" }, detail: { en: "A human-readable explanation was generated in the applicant's language.", hi: "आवेदक की भाषा में एक मानव-पठनीय स्पष्टीकरण तैयार किया गया।", mr: "अर्जदाराच्या भाषेत मानव-वाचनीय स्पष्टीकरण तयार करण्यात आले." }, status: "compliant" },
+  { title: { en: "Protected attribute usage", hi: "संरक्षित विशेषता उपयोग", mr: "संरक्षित गुणधर्म वापर" }, detail: { en: "No protected attributes were used as model inputs.", hi: "किसी भी संरक्षित विशेषता का उपयोग मॉडल इनपुट के रूप में नहीं किया गया।", mr: "कोणतेही संरक्षित गुणधर्म मॉडेल इनपुट म्हणून वापरले गेले नाहीत." }, status: "compliant" },
+  { title: { en: "Record retention", hi: "रिकॉर्ड प्रतिधारण", mr: "नोंद जतन" }, detail: { en: "Decision artefacts stored for the mandated 7-year period.", hi: "निर्णय दस्तावेज़ अनिवार्य 7-वर्ष की अवधि के लिए संग्रहीत किए गए।", mr: "निर्णय दस्तऐवज अनिवार्य 7-वर्ष कालावधीसाठी साठवले गेले." }, status: "compliant" }
+];
+
+const I18N = {
+  subtitle: { en: "Multilingual Explainable AI Compliance Console", hi: "बहुभाषी व्याख्येय AI अनुपालन कंसोल", mr: "बहुभाषिक स्पष्टीकरणीय AI अनुपालन कन्सोल" },
+  language: { en: "Language", hi: "भाषा", mr: "भाषा" },
+  decisions: { en: "Decisions", hi: "निर्णय", mr: "निर्णय" },
+  decisionAnalysis: { en: "Decision Analysis", hi: "निर्णय विश्लेषण", mr: "निर्णय विश्लेषण" },
+  generateReport: { en: "Generate audit report", hi: "ऑडिट रिपोर्ट बनाएं", mr: "ऑडिट अहवाल तयार करा" },
+  outcome: { en: "Outcome", hi: "परिणाम", mr: "निकाल" },
+  confidence: { en: "Confidence", hi: "विश्वास स्तर", mr: "विश्वास पातळी" },
+  riskLevel: { en: "Risk level", hi: "जोखिम स्तर", mr: "जोखीम पातळी" },
+  riskScore: { en: "Risk score", hi: "जोखिम स्कोर", mr: "जोखीम गुण" },
+  model: { en: "Model", hi: "मॉडल", mr: "मॉडेल" },
+  contributingFactors: { en: "Contributing factors", hi: "योगदान देने वाले कारक", mr: "योगदान देणारे घटक" },
+  supports: { en: "supports", hi: "समर्थन करता है", mr: "समर्थन करते" },
+  opposes: { en: "opposes", hi: "विरोध करता है", mr: "विरोध करते" },
+  explanation: { en: "Explanation", hi: "स्पष्टीकरण", mr: "स्पष्टीकरण" },
+  complianceStatus: { en: "Compliance status", hi: "अनुपालन स्थिति", mr: "अनुपालन स्थिती" },
+  compliant: { en: "Compliant", hi: "अनुपालित", mr: "अनुपालित" },
+  approved: { en: "Approved", hi: "स्वीकृत", mr: "मंजूर" },
+  review: { en: "Manual review", hi: "मैन्युअल समीक्षा", mr: "मॅन्युअल पुनरावलोकन" },
+  declined: { en: "Declined", hi: "अस्वीकृत", mr: "नाकारले" },
+  low: { en: "Low", hi: "कम", mr: "कमी" },
+  medium: { en: "Medium", hi: "मध्यम", mr: "मध्यम" },
+  high: { en: "High", hi: "उच्च", mr: "उच्च" }
+};
+
+let lang = "en";
+let activeId = DECISIONS[0].id;
+
+function t(key) { return I18N[key][lang]; }
+
+function outcomeMeta(outcome) {
+  if (outcome === "approved") return { label: t("approved"), cls: "success" };
+  if (outcome === "review") return { label: t("review"), cls: "warning" };
+  return { label: t("declined"), cls: "destructive" };
+}
+
+function riskMeta(level) {
+  if (level === "low") return { label: t("low"), cls: "risk-low" };
+  if (level === "medium") return { label: t("medium"), cls: "risk-medium" };
+  return { label: t("high"), cls: "risk-high" };
+}
+
+function renderList() {
+  const list = document.getElementById("decisionList");
+  list.innerHTML = "";
+  DECISIONS.forEach(d => {
+    const li = document.createElement("li");
+    const om = outcomeMeta(d.outcome);
+    li.innerHTML = `
+      <button class="decision-btn ${d.id === activeId ? "active" : ""}" data-id="${d.id}">
+        <div class="decision-row">
+          <span class="decision-id">${d.id}</span>
+          <span class="badge ${om.cls}">${om.label}</span>
+        </div>
+        <p class="decision-title">${d.domain[lang]}</p>
+        <p class="decision-meta">${d.model} · ${d.officer}</p>
+      </button>`;
+    list.appendChild(li);
+  });
+  list.querySelectorAll(".decision-btn").forEach(btn => {
+    btn.addEventListener("click", () => { activeId = btn.dataset.id; render(); });
+  });
+}
+
+function renderDetail() {
+  const d = DECISIONS.find(x => x.id === activeId);
+  const om = outcomeMeta(d.outcome);
+  const rm = riskMeta(d.riskLevel);
+  const detail = document.getElementById("detail");
+
+  const factorsHtml = d.factors.map(f => {
+    const isSupport = f.dir === "supports";
+    return `
+      <li>
+        <div class="factor-top">
+          <span class="factor-name">${f.name[lang]}</span>
+          <span class="factor-detail">${f.detail[lang]}</span>
+        </div>
+        <div class="factor-bar-row">
+          <div class="factor-track">
+            <div class="factor-mid"></div>
+            <div class="factor-fill ${isSupport ? "supports" : "opposes"}" style="width:${f.pct * 0.6}%;"></div>
+          </div>
+          <span class="factor-pct ${isSupport ? "supports" : "opposes"}">${isSupport ? "+" : "-"}${f.pct}% ${isSupport ? t("supports") : t("opposes")}</span>
+        </div>
+      </li>`;
+  }).join("");
+
+  const complianceHtml = COMPLIANCE_ITEMS.map(c => `
+    <li class="compliance-item">
+      <div class="label">
+        <p>${c.title[lang]}</p>
+        <p>${c.detail[lang]}</p>
+      </div>
+      <span class="badge success">${t("compliant")}</span>
+    </li>`).join("");
+
+  detail.innerHTML = `
+    <div class="card">
+      <div class="detail-header">
+        <div>
+          <h2>${t("decisionAnalysis")}</h2>
+          <p class="id">${d.id}</p>
+        </div>
+        <button class="btn-primary" id="reportBtn">${t("generateReport")}</button>
+      </div>
+      <dl class="stat-grid">
+        <div class="stat">
+          <dt>${t("outcome")}</dt>
+          <dd><span class="badge ${om.cls}">${om.label}</span></dd>
+        </div>
+        <div class="stat">
+          <dt>${t("confidence")}</dt>
+          <dd class="big">${d.confidence}%</dd>
+          <div class="bar-track"><div class="bar-fill" style="width:${d.confidence}%;"></div></div>
+        </div>
+        <div class="stat">
+          <dt>${t("riskLevel")}</dt>
+          <dd class="big ${rm.cls}">${rm.label}</dd>
+          <p class="small-muted">${t("riskScore")}: ${d.riskScore}/100</p>
+        </div>
+        <div class="stat">
+          <dt>${t("model")}</dt>
+          <dd style="font-size:14px;font-weight:500;">${d.model}</dd>
+          <p class="small-muted">${d.timestamp}</p>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">${t("contributingFactors")}</h3>
+      <ul class="factor-list">${factorsHtml}</ul>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">${t("explanation")}</h3>
+      <p class="explanation-text">${d.explanation[lang]}</p>
+    </div>
+
+    <div class="card">
+      <div class="compliance-header">
+        <h3 class="section-title">${t("complianceStatus")}</h3>
+        <span class="badge success">${t("compliant")}</span>
+      </div>
+      <ul class="compliance-list">${complianceHtml}</ul>
+    </div>
+  `;
+
+  document.getElementById("reportBtn").addEventListener("click", () => window.print());
+}
+
+function render() {
+  document.querySelectorAll(".lang-toggle button").forEach(b => b.classList.toggle("active", b.dataset.lang === lang));
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  renderList();
+  renderDetail();
+}
+
+document.getElementById("langToggle").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-lang]");
+  if (!btn) return;
+  lang = btn.dataset.lang;
+  render();
+});
+
+render();
+</script>
+
+</body>
+</html>
